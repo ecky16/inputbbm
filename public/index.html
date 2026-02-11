@@ -118,7 +118,7 @@
             };
 
             try {
-                // Perubahan di sini: Tembak ke endpoint /webhook milik Vercel Mas Ecky
+                // Tembak ke endpoint /webhook milik Vercel Mas Ecky
                 const response = await fetch('/webhook', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -134,6 +134,16 @@
                     tg.showAlert(`Berhasil disimpan!\nID Unik: ${result.uniqueId}\nLaporan sudah dikirim ke Channel.`);
                     tg.close(); 
                 } else {
-                    throw new Error("Gagal simpan");
+                    throw new Error(result.message || "Gagal simpan");
                 }
-            } catch (error)
+            } catch (error) {
+                console.error(error);
+                tg.showAlert("Waduh, gagal kirim data! Cek koneksi atau settingan GAS Mas Ecky.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Kirim Laporan";
+            }
+        });
+    </script>
+</body>
+</html>
