@@ -117,20 +117,42 @@
             btn.innerText = "Mengirim...";
 
             const formData = {
-                telegramId: user ? user.id : "123",
+                telegramId: user ? user.id : "92250027",
                 nama: user ? user.first_name : "Anonim",
                 tanggal: document.getElementById('tanggal').value,
                 jenis: document.getElementById('jenis').value,
-                plat: document.getElementById('plat').value,
-                kmAwal: document.getElementById('kmAwal').value,
-                kmAkhir: document.getElementById('kmAkhir').value,
+                plat: document.getElementById('plat').value || "-",
+                kmAwal: document.getElementById('kmAwal').value || "0",
+                kmAkhir: document.getElementById('kmAkhir').value || "0",
                 uraian: document.getElementById('uraian').value,
                 jumlah: document.getElementById('jumlah').value,
-                // File Base64
                 fileKmAwal: await toBase64(document.getElementById('imgKmAwal').files[0]),
                 fileKmAkhir: await toBase64(document.getElementById('imgKmAkhir').files[0]),
                 fileEvidence: await toBase64(document.getElementById('imgEvidence').files[0])
             };
+
+            try {
+                const res = await fetch('/webhook', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: "SUBMIT_FORM", formData })
+                });
+                const result = await res.json();
+                
+                if(result.status === "success") {
+                    // MENGIRIM DATA KE BOT AGAR BOT BISA BALAS CHAT
+                    tg.sendData(JSON.stringify({ 
+                        message: `Data sudah terinput dengan id : \`${result.uniqueId}\`` 
+                    }));
+                    // Kasih jeda sedikit biar sendData selesai proses baru tutup
+                    setTimeout(() => { tg.close(); }, 500);
+                }
+            } catch (err) {
+                alert("Gagal Kirim ke Vercel!");
+                btn.disabled = false;
+                btn.innerText = "Kirim Laporan";
+            }
+        });
 
             try {
                 const res = await fetch('/webhook', {
