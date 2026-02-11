@@ -10,38 +10,29 @@ const handler = async (req, res) => {
 
     if (body.type === "SUBMIT_FORM") {
         try {
-            const { formData } = body;
-            
-            // 1. Generate ID Instan
-            const d = new Date();
-            const timestamp = `${d.getHours()}${d.getMinutes()}${d.getSeconds()}`;
-            const uniqueId = `OSA-${d.getFullYear()}-${timestamp}`;
+    const { formData } = body;
+    const d = new Date();
+    const uniqueId = `OSA-${d.getFullYear()}-${d.getHours()}${d.getMinutes()}${d.getSeconds()}`;
 
-            // 2. Siapkan Media Group untuk Channel
-            const media = [];
-            if (formData.fileKmAwal) {
-                media.push({ type: 'photo', media: { source: Buffer.from(formData.fileKmAwal, 'base64') } });
-            }
-            if (formData.fileKmAkhir) {
-                media.push({ type: 'photo', media: { source: Buffer.from(formData.fileKmAkhir, 'base64') } });
-            }
+    // A. Lapor ke GAS dulu untuk ambil Nama Asli dari DB
+    const gasRes = await axios.post(process.env.APPS_SCRIPT_URL, { ...formData, uniqueId });
+    const namaFix = gasRes.data.namaAsli || "Tidak Dikenal";
 
-            const caption = `📌 *LAPORAN PANJER BARU*
---------------------------
-🆔 ID: \`${uniqueId}\`
-👤 Teknisi: ${formData.nama}
-🚗 Jenis: ${formData.jenis}
-📝 Uraian: ${formData.uraian}
-💰 Jumlah: Rp ${Number(formData.jumlah).toLocaleString('id-ID')}
---------------------------
-✅ Tercatat di Spreadsheet`;
+    // B. Siapkan Media Group (Gunakan namaFix)
+    const media = [];
+    if (formData.fileKmAwal) media.push({ type: 'photo', media: { source: Buffer.from(formData.fileKmAwal, 'base64') } });
+    if (formData.fileKmAkhir) media.push({ type: 'photo', media: { source: Buffer.from(formData.fileKmAkhir, 'base64') } });
 
-            media.push({ 
-                type: 'photo', 
-                media: { source: Buffer.from(formData.fileEvidence, 'base64') }, 
-                caption: caption, 
-                parse_mode: 'Markdown' 
-            });
+    const caption = `📌 *LAPORAN PANJER BARU*\n--------------------------\n🆔 ID: \`${uniqueId}\`\n👤 Teknisi: ${namaFix}\n🚗 Jenis: ${formData.jenis}\n📝 Uraian: ${formData.uraian}\n💰 Jumlah: Rp ${Number(formData.jumlah).toLocaleString('id-ID')}`;
+    
+    media.push({ type: 'photo', media: { source: Buffer.from(formData.fileEvidence, 'base64') }, caption, parse_mode: 'Markdown' });
+
+    // C. Kirim ke Channel & Chatbot
+    await bot.telegram.sendMediaGroup(CHANNEL_ID, media);
+    await bot.telegram.sendMessage(formData.telegramId, `✅ *Laporan Berhasil!*\n\nID: \`${uniqueId}\`\nNama: ${namaFix}`, { parse_mode: 'Markdown' });
+
+    return res.status(200).json({ status: "success", uniqueId });
+} catch (error) { ... }
 
             // --- BAGIAN KRUSIAL: Kita pakai await satu-satu biar Vercel gak mati duluan ---
             
