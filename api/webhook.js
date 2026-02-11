@@ -11,37 +11,62 @@ const handler = async (req, res) => {
     if (body.type === "SUBMIT_FORM") {
         try {
             const { formData } = body;
-            // 1. Generate ID Instan di Vercel biar cepet (Contoh: OSA-2104-55)
+            
+            // 1. Generate ID Instan
             const d = new Date();
             const timestamp = `${d.getHours()}${d.getMinutes()}${d.getSeconds()}`;
             const uniqueId = `OSA-${d.getFullYear()}-${timestamp}`;
 
-            // 2. Kirim ke Channel & GAS secara PARALEL (Gak pake antri)
+            // 2. Siapkan Media Group untuk Channel
             const media = [];
-            if (formData.fileKmAwal) media.push({ type: 'photo', media: { source: Buffer.from(formData.fileKmAwal, 'base64') } });
-            if (formData.fileKmAkhir) media.push({ type: 'photo', media: { source: Buffer.from(formData.fileKmAkhir, 'base64') } });
-            
-            const caption = `📌 *LAPORAN PANJER BARU*\n--------------------------\n🆔 ID: \`${uniqueId}\`\n👤 Teknisi: ${formData.nama}\n🚗 Jenis: ${formData.jenis}\n📝 Uraian: ${formData.uraian}\n💰 Jumlah: Rp ${Number(formData.jumlah).toLocaleString('id-ID')}`;
-            
-            media.push({ type: 'photo', media: { source: Buffer.from(formData.fileEvidence, 'base64') }, caption, parse_mode: 'Markdown' });
+            if (formData.fileKmAwal) {
+                media.push({ type: 'photo', media: { source: Buffer.from(formData.fileKmAwal, 'base64') } });
+            }
+            if (formData.fileKmAkhir) {
+                media.push({ type: 'photo', media: { source: Buffer.from(formData.fileKmAkhir, 'base64') } });
+            }
 
-            // Jalankan semua tugas barengan
-            Promise.all([
-                bot.telegram.sendMediaGroup(CHANNEL_ID, media),
-                axios.post(process.env.APPS_SCRIPT_URL, { ...formData, uniqueId }), // Kirim ID yang sudah jadi ke GAS
-                bot.telegram.sendMessage(formData.telegramId, `✅ *Laporan Terkirim!*\nID: \`${uniqueId}\`\n\nID sudah tersimpan di sistem.`, { parse_mode: 'Markdown' })
-            ]).catch(e => console.error("Background Task Error:", e));
+            const caption = `📌 *LAPORAN PANJER BARU*
+--------------------------
+🆔 ID: \`${uniqueId}\`
+👤 Teknisi: ${formData.nama}
+🚗 Jenis: ${formData.jenis}
+📝 Uraian: ${formData.uraian}
+💰 Jumlah: Rp ${Number(formData.jumlah).toLocaleString('id-ID')}
+--------------------------
+✅ Tercatat di Spreadsheet`;
 
-            // LANGSUNG BALAS KE FRONTEND (Gak nunggu proses di atas selesai)
+            media.push({ 
+                type: 'photo', 
+                media: { source: Buffer.from(formData.fileEvidence, 'base64') }, 
+                caption: caption, 
+                parse_mode: 'Markdown' 
+            });
+
+            // --- BAGIAN KRUSIAL: Kita pakai await satu-satu biar Vercel gak mati duluan ---
+            
+            // A. Kirim ke Channel
+            await bot.telegram.sendMediaGroup(CHANNEL_ID, media);
+            
+            // B. Kirim ke Google Sheets (GAS)
+            // Kita kirim nama dan uniqueId agar GAS tinggal catat
+            await axios.post(process.env.APPS_SCRIPT_URL, { ...formData, uniqueId });
+
+            // C. Kirim ke Chat Pribadi Teknisi
+            await bot.telegram.sendMessage(formData.telegramId, `✅ *Laporan Berhasil!*\n\nID: \`${uniqueId}\`\nData telah terinput ke Spreadsheet dan Channel.`, { parse_mode: 'Markdown' });
+
+            // 3. Setelah SEMUA selesai, baru kasih respon ke Mini App
             return res.status(200).json({ status: "success", uniqueId });
 
         } catch (error) {
+            console.error("Detail Error:", error.message);
             return res.status(500).json({ status: "error", message: error.message });
         }
     }
 
+    // Untuk handle /start
     if (body.message && body.message.text === '/start') {
-        await bot.telegram.sendMessage(body.message.chat.id, "Silakan klik tombol menu untuk input laporan.");
+        await bot.telegram.sendMessage(body.message.chat.id, "Silakan gunakan tombol menu untuk input laporan.");
     }
     return res.status(200).send('OK');
 };
