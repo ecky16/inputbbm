@@ -1,20 +1,13 @@
 {
   "name": "bot-panjer-osa",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Bot Input Panjer via Telegram Mini App",
   "main": "api/webhook.js",
   "dependencies": {
     "telegraf": "^4.16.3",
     "axios": "^1.6.0"
   },
-  "devDependencies": {},
-  "scripts": {
-    "start": "node api/webhook.js"
-  },
   "engines": {
     "node": "24.x"
   }
 }
-
-
-
