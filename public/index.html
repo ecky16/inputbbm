@@ -28,6 +28,14 @@
         </div>
 
         <div class="form-group">
+            <label>TIM</label>
+            <select id="tim" required>
+                <option value="MAINTENANCE">MAINTENANCE</option>
+                <option value="B2B">B2B</option>
+            </select>
+        </div>
+
+        <div class="form-group">
             <label>Jenis Pekerjaan</label>
             <select id="jenis" onchange="toggleKBM()" required>
                 <option value="">-- Pilih Jenis --</option>
@@ -55,17 +63,17 @@
         </div>
 
         <div class="upload-group">
-            <label>📸 Upload Foto KM Awal (KBM Only)</label>
+            <label>📸 Foto KM Awal (KBM Only)</label>
             <input type="file" id="imgKmAwal" class="kbm-field" accept="image/*" disabled>
         </div>
 
         <div class="upload-group">
-            <label>📸 Upload Foto KM Akhir (KBM Only)</label>
+            <label>📸 Foto KM Akhir (KBM Only)</label>
             <input type="file" id="imgKmAkhir" class="kbm-field" accept="image/*" disabled>
         </div>
 
         <div class="upload-group">
-            <label>📸 Upload Evidence / Nota (Wajib)</label>
+            <label>📸 Foto Evidence / Nota (Wajib)</label>
             <input type="file" id="imgEvidence" accept="image/*" required>
         </div>
 
@@ -91,17 +99,18 @@
             document.getElementById('user-info').innerText = `Teknisi: ${user.first_name} (${user.id})`;
         }
 
-       function toggleKBM() {
-    const jenis = document.getElementById('jenis').value;
-    const isKBM = jenis.includes("KBM"); // Cek apakah ada kata KBM
-    const fields = document.querySelectorAll('.kbm-field');
-    
-    fields.forEach(f => {
-        f.disabled = !isKBM;
-        f.required = isKBM; // Hanya wajib diisi kalau pilih BBM/KBM
-        if (!isKBM) f.value = ""; // Reset isi kalau ganti ke non-KBM
-    });
-}
+        function toggleKBM() {
+            const jenis = document.getElementById('jenis').value;
+            const isKBM = jenis.includes("KBM");
+            const fields = document.querySelectorAll('.kbm-field');
+            
+            fields.forEach(f => {
+                f.disabled = !isKBM;
+                f.required = isKBM;
+                if(!isKBM) f.value = "";
+                f.style.background = isKBM ? "#fff" : "#e0e0e0";
+            });
+        }
 
         const toBase64 = file => new Promise((resolve, reject) => {
             if(!file) resolve(null);
@@ -112,61 +121,30 @@
         });
 
         document.getElementById('panjerForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById('btnSubmit');
-    btn.disabled = true;
-    btn.innerText = "Mengirim...";
+            e.preventDefault();
+            const btn = document.getElementById('btnSubmit');
+            btn.disabled = true;
+            btn.innerText = "Mengirim...";
 
-    // Ambil elemen filenya dulu
-    const fKmAwal = document.getElementById('imgKmAwal').files[0];
-    const fKmAkhir = document.getElementById('imgKmAkhir').files[0];
-    const fEvidence = document.getElementById('imgEvidence').files[0];
+            const fAwal = document.getElementById('imgKmAwal').files[0];
+            const fAkhir = document.getElementById('imgKmAkhir').files[0];
+            const fEvid = document.getElementById('imgEvidence').files[0];
 
-    // Buat objek data dengan pengecekan file (Proteksi agar tidak error)
-    const formData = {
-        telegramId: user ? user.id : "92250027",
-        nama: user ? user.first_name : "Anonim",
-        tanggal: document.getElementById('tanggal').value,
-        jenis: document.getElementById('jenis').value,
-        tim: document.getElementById('tim').value, // Pastikan input TIM ada di HTML
-        plat: document.getElementById('plat').value || "-",
-        kmAwal: document.getElementById('kmAwal').value || "0",
-        kmAkhir: document.getElementById('kmAkhir').value || "0",
-        uraian: document.getElementById('uraian').value,
-        jumlah: document.getElementById('jumlah').value,
-        
-        // Hanya jalankan toBase64 JIKA filenya ada
-        fileKmAwal: fKmAwal ? await toBase64(fKmAwal) : null,
-        fileKmAkhir: fKmAkhir ? await toBase64(fKmAkhir) : null,
-        fileEvidence: fEvidence ? await toBase64(fEvidence) : null
-    };
-
-    try {
-        const res = await fetch('/webhook', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ type: "SUBMIT_FORM", formData })
-        });
-        
-        const result = await res.json();
-        
-        if(result.status === "success") {
-            // Berikan alert agar ID bisa dibaca dulu
-            tg.showAlert(`Data Tersimpan!\nID: ${result.uniqueId}`, () => {
-                // Setelah klik OK, kirim data ke bot dan tutup
-                tg.sendData(JSON.stringify({ 
-                    message: `Data sudah terinput dengan id : \`${result.uniqueId}\`` 
-                }));
-                tg.close();
-            });
-        }
-    } catch (err) {
-        console.error(err);
-        alert("Gagal Kirim Data!");
-        btn.disabled = false;
-        btn.innerText = "Kirim Laporan";
-    }
-});
+            const formData = {
+                telegramId: user ? user.id : "92250027",
+                nama: user ? user.first_name : "Anonim",
+                tanggal: document.getElementById('tanggal').value,
+                tim: document.getElementById('tim').value,
+                jenis: document.getElementById('jenis').value,
+                plat: document.getElementById('plat').value || "-",
+                kmAwal: document.getElementById('kmAwal').value || "0",
+                kmAkhir: document.getElementById('kmAkhir').value || "0",
+                uraian: document.getElementById('uraian').value,
+                jumlah: document.getElementById('jumlah').value,
+                fileKmAwal: fAwal ? await toBase64(fAwal) : null,
+                fileKmAkhir: fAkhir ? await toBase64(fAkhir) : null,
+                fileEvidence: fEvid ? await toBase64(fEvid) : null
+            };
 
             try {
                 const res = await fetch('/webhook', {
@@ -175,14 +153,17 @@
                     body: JSON.stringify({ type: "SUBMIT_FORM", formData })
                 });
                 const result = await res.json();
+                
                 if(result.status === "success") {
-                    tg.sendData(JSON.stringify({ 
-                        message: `Data sudah terinput dengan id : \`${result.uniqueId}\`` 
-                    }));
-                    tg.close();
+                    tg.showAlert(`Data sudah terinput dengan id : ${result.uniqueId}`, () => {
+                        tg.sendData(JSON.stringify({ 
+                            message: `Data sudah terinput dengan id : \`${result.uniqueId}\`` 
+                        }));
+                        tg.close();
+                    });
                 }
             } catch (err) {
-                alert("Gagal!");
+                alert("Gagal Kirim!");
                 btn.disabled = false;
                 btn.innerText = "Kirim Laporan";
             }
