@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/public/index.html"
+    },
+    {
+      "source": "/webhook",
+      "destination": "/api/webhook.js"
+    }
+  ],
+  "env": {
+    "BOT_TOKEN": "@bot_token",
+    "VERCEL_URL": "nama-project-mas.vercel.app"
+  }
+}
