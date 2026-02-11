@@ -91,16 +91,17 @@
             document.getElementById('user-info').innerText = `Teknisi: ${user.first_name} (${user.id})`;
         }
 
-        function toggleKBM() {
-            const jenis = document.getElementById('jenis').value;
-            const isKBM = jenis.includes("KBM");
-            const fields = document.querySelectorAll('.kbm-field');
-            fields.forEach(f => {
-                f.disabled = !isKBM;
-                f.required = isKBM;
-                if(!isKBM) f.value = "";
-            });
-        }
+       function toggleKBM() {
+    const jenis = document.getElementById('jenis').value;
+    const isKBM = jenis.includes("KBM"); // Cek apakah ada kata KBM
+    const fields = document.querySelectorAll('.kbm-field');
+    
+    fields.forEach(f => {
+        f.disabled = !isKBM;
+        f.required = isKBM; // Hanya wajib diisi kalau pilih BBM/KBM
+        if (!isKBM) f.value = ""; // Reset isi kalau ganti ke non-KBM
+    });
+}
 
         const toBase64 = file => new Promise((resolve, reject) => {
             if(!file) resolve(null);
