@@ -57,3 +57,10 @@ module.exports = async (req, res) => {
         res.status(200).send('OK');
     } catch (e) { res.status(200).send('OK'); }
 };
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '10mb', // Naikkan limit ke 10MB biar foto bisa masuk
+    },
+  },
+};
