@@ -15,13 +15,15 @@ module.exports = async (req, res) => {
     // --- 1. HANDLING INPUT DARI FORM (MINI APP) ---
     if (body.type === "SUBMIT_FORM") {
         try {
-            // Kirim data teks ke Google Apps Script
+            // KIRIM SELURUH formData KE GAS
             const gasRes = await axios.post(process.env.APPS_SCRIPT_URL, body.formData);
             const { uniqueId, nama } = gasRes.data;
 
+            if (!uniqueId) throw new Error("GAS tidak kirim ID");
+
             // Siapkan Media Group (Album) untuk dikirim ke Channel
             const media = [];
-
+return res.status(200).json({ status: "success", uniqueId, nama });
             // Jika ada foto KM Awal (Khusus KBM)
             if (body.formData.fileKmAwal) {
                 media.push({ 
