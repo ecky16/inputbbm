@@ -155,13 +155,10 @@
                 const result = await res.json();
                 
                 if(result.status === "success") {
-                    tg.showAlert(`Data sudah terinput dengan id : ${result.uniqueId}`, () => {
-                        tg.sendData(JSON.stringify({ 
-                            message: `Data sudah terinput dengan id : \`${result.uniqueId}\`` 
-                        }));
-                        tg.close();
-                    });
-                }
+    tg.showAlert(`Terkirim! ID: ${result.uniqueId}\nCek chat bot untuk rinciannya.`, () => {
+        tg.close();
+    });
+}
             } catch (err) {
                 alert("Gagal Kirim!");
                 btn.disabled = false;
