@@ -6,13 +6,14 @@
     <title>Input Panjer Teknisi</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 15px; background: #f4f4f9; }
+        body { font-family: sans-serif; padding: 15px; background: #f4f4f9; color: #333; }
         .form-group { margin-bottom: 15px; }
         label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
-        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; }
-        input:disabled { background: #e0e0e0; cursor: not-allowed; }
-        button { width: 100%; padding: 12px; background: #0088cc; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        .info-user { background: #e7f3ff; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 12px; }
+        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        input:disabled, select:disabled { background: #e0e0e0; cursor: not-allowed; }
+        button { width: 100%; padding: 12px; background: #0088cc; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        button:disabled { background: #ccc; }
+        .info-user { background: #e7f3ff; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 12px; border-left: 5px solid #0088cc; }
     </style>
 </head>
 <body>
@@ -66,7 +67,7 @@
 
         <div class="form-group">
             <label>Uraian Pekerjaan</label>
-            <textarea id="uraian" rows="3" required></textarea>
+            <textarea id="uraian" rows="3" placeholder="Jelaskan detail pekerjaan..." required></textarea>
         </div>
 
         <div class="form-group">
@@ -79,11 +80,11 @@
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Biar layar penuh
+        tg.expand();
 
         const user = tg.initDataUnsafe.user;
         if(user) {
-            document.getElementById('user-info').innerText = `Teknisi: ${user.first_name} (${user.id})`;
+            document.getElementById('user-info').innerText = `Teknisi: ${user.first_name} ${user.last_name || ''} (${user.id})`;
         }
 
         function toggleBBMFields() {
@@ -93,7 +94,8 @@
             
             fields.forEach(f => {
                 f.disabled = !isBBM;
-                if(!isBBM) f.value = ""; // Reset nilai jika di-disable
+                if(!isBBM) f.value = ""; 
+                f.required = isBBM; // Tambahan: Jadi wajib isi kalau BBM
             });
         }
 
@@ -101,10 +103,10 @@
             e.preventDefault();
             const btn = document.getElementById('btnSubmit');
             btn.disabled = true;
-            btn.innerText = "Mengirim...";
+            btn.innerText = "Memproses...";
 
             const formData = {
-                telegramId: user ? user.id : "123456", // Fallback ID buat testing
+                telegramId: user ? user.id : "123456", 
                 tanggal: document.getElementById('tanggal').value,
                 jenis: document.getElementById('jenis').value,
                 tim: document.getElementById('tim').value,
@@ -115,26 +117,23 @@
                 jumlah: document.getElementById('jumlah').value
             };
 
-            // URL Web App dari Google Apps Script Mas Ecky
-            const scriptURL = "URL_GOOGLE_APPS_SCRIPT_MAS_ECKY";
-
             try {
-                const response = await fetch(scriptURL, {
+                // Perubahan di sini: Tembak ke endpoint /webhook milik Vercel Mas Ecky
+                const response = await fetch('/webhook', {
                     method: 'POST',
-                    body: JSON.stringify(formData)
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: "SUBMIT_FORM",
+                        formData: formData
+                    })
                 });
+                
                 const result = await response.json();
 
                 if(result.status === "success") {
-                    tg.showAlert(`Berhasil! ID Unik Anda: ${result.uniqueId}`);
-                    tg.close(); // Tutup Mini App
+                    tg.showAlert(`Berhasil disimpan!\nID Unik: ${result.uniqueId}\nLaporan sudah dikirim ke Channel.`);
+                    tg.close(); 
+                } else {
+                    throw new Error("Gagal simpan");
                 }
-            } catch (error) {
-                tg.showAlert("Gagal mengirim data. Cek koneksi atau Apps Script.");
-                btn.disabled = false;
-                btn.innerText = "Kirim Laporan";
-            }
-        });
-    </script>
-</body>
-</html>
+            } catch (error)
