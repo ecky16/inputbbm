@@ -1,149 +1,78 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Input Panjer Teknisi</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        body { font-family: sans-serif; padding: 15px; background: #f4f4f9; color: #333; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
-        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        input:disabled, select:disabled { background: #e0e0e0; cursor: not-allowed; }
-        button { width: 100%; padding: 12px; background: #0088cc; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
-        button:disabled { background: #ccc; }
-        .info-user { background: #e7f3ff; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 12px; border-left: 5px solid #0088cc; }
-    </style>
-</head>
-<body>
+const { Telegraf } = require('telegraf');
+const axios = require('axios');
 
-    <div class="info-user" id="user-info">Memuat data teknisi...</div>
+const bot = new Telegraf(process.env.BOT_TOKEN);
+const CHANNEL_ID = "-1003658290440";
 
-    <form id="panjerForm">
-        <div class="form-group">
-            <label>Tanggal (Sesuai Nota BBM)</label>
-            <input type="date" id="tanggal" required>
-        </div>
+module.exports = async (req, res) => {
+    if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
-        <div class="form-group">
-            <label>Jenis Pekerjaan</label>
-            <select id="jenis" onchange="toggleBBMFields()" required>
-                <option value="">-- Pilih Jenis --</option>
-                <option value="BBM KBM R4">BBM KBM R4</option>
-                <option value="BBM KBM R2">BBM KBM R2</option>
-                <option value="PANTRI">PANTRI</option>
-                <option value="KONSUMSI">KONSUMSI</option>
-                <option value="MATERIAL">MATERIAL</option>
-                <option value="INTERNET">INTERNET</option>
-                <option value="ATK">ATK</option>
-                <option value="JASA">JASA</option>
-                <option value="LAIN LAIN">LAIN LAIN</option>
-            </select>
-        </div>
+    const body = req.body;
 
-        <div class="form-group">
-            <label>TIM</label>
-            <select id="tim" class="bbm-field" disabled>
-                <option value="MAINTENANCE">MAINTENANCE</option>
-                <option value="B2B">B2B</option>
-            </select>
-        </div>
+    // Logika jika datang dari Form Mini App
+    if (body.type === "SUBMIT_FORM") {
+        try {
+            // 1. Kirim ke Google Sheets lewat Apps Script
+            const gasRes = await axios.post(process.env.APPS_SCRIPT_URL, body.formData);
+            const { uniqueId } = gasRes.data;
 
-        <div class="form-group">
-            <label>PLAT Nomor</label>
-            <input type="text" id="plat" class="bbm-field" placeholder="L 1234 ABC" disabled>
-        </div>
-
-        <div class="form-group">
-            <label>KM Awal</label>
-            <input type="number" id="kmAwal" class="bbm-field" disabled>
-        </div>
-
-        <div class="form-group">
-            <label>KM Akhir</label>
-            <input type="number" id="kmAkhir" class="bbm-field" disabled>
-        </div>
-
-        <div class="form-group">
-            <label>Uraian Pekerjaan</label>
-            <textarea id="uraian" rows="3" placeholder="Jelaskan detail pekerjaan..." required></textarea>
-        </div>
-
-        <div class="form-group">
-            <label>Jumlah (Rupiah)</label>
-            <input type="number" id="jumlah" placeholder="Contoh: 50000" required>
-        </div>
-
-        <button type="submit" id="btnSubmit">Kirim Laporan</button>
-    </form>
-
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-
-        const user = tg.initDataUnsafe.user;
-        if(user) {
-            document.getElementById('user-info').innerText = `Teknisi: ${user.first_name} ${user.last_name || ''} (${user.id})`;
-        }
-
-        function toggleBBMFields() {
-            const jenis = document.getElementById('jenis').value;
-            const isBBM = jenis.startsWith("BBM");
-            const fields = document.querySelectorAll('.bbm-field');
-            
-            fields.forEach(f => {
-                f.disabled = !isBBM;
-                if(!isBBM) f.value = ""; 
-                f.required = isBBM; // Tambahan: Jadi wajib isi kalau BBM
-            });
-        }
-
-        document.getElementById('panjerForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('btnSubmit');
-            btn.disabled = true;
-            btn.innerText = "Memproses...";
-
-            const formData = {
-                telegramId: user ? user.id : "123456", 
-                tanggal: document.getElementById('tanggal').value,
-                jenis: document.getElementById('jenis').value,
-                tim: document.getElementById('tim').value,
-                plat: document.getElementById('plat').value,
-                kmAwal: document.getElementById('kmAwal').value,
-                kmAkhir: document.getElementById('kmAkhir').value,
-                uraian: document.getElementById('uraian').value,
-                jumlah: document.getElementById('jumlah').value
-            };
-
-            try {
-                // Tembak ke endpoint /webhook milik Vercel Mas Ecky
-                const response = await fetch('/webhook', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        type: "SUBMIT_FORM",
-                        formData: formData
-                    })
-                });
-                
-                const result = await response.json();
-
-                if(result.status === "success") {
-                    tg.showAlert(`Berhasil disimpan!\nID Unik: ${result.uniqueId}\nLaporan sudah dikirim ke Channel.`);
-                    tg.close(); 
-                } else {
-                    throw new Error(result.message || "Gagal simpan");
-                }
-            } catch (error) {
-                console.error(error);
-                tg.showAlert("Waduh, gagal kirim data! Cek koneksi atau settingan GAS Mas Ecky.");
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "Kirim Laporan";
+            // 2. Siapkan Album Foto untuk Channel
+            const media = [];
+            if (body.formData.fileKmAwal) {
+                media.push({ type: 'photo', media: { source: Buffer.from(body.formData.fileKmAwal, 'base64') } });
             }
-        });
-    </script>
-</body>
-</html>
+            if (body.formData.fileKmAkhir) {
+                media.push({ type: 'photo', media: { source: Buffer.from(body.formData.fileKmAkhir, 'base64') } });
+            }
+            
+            // Format Caption Mas Ecky
+            const caption = `📌 *LAPORAN PANJER BARU*
+--------------------------
+🆔 ID: \`${uniqueId}\`
+👤 Teknisi: ${body.formData.nama} (${body.formData.telegramId})
+🚗 Jenis: ${body.formData.jenis}
+📝 Uraian: ${body.formData.uraian}
+💰 Jumlah: Rp ${Number(body.formData.jumlah).toLocaleString('id-ID')}
+--------------------------
+✅ Tercatat di Sheet Kolom N`;
+
+            media.push({ 
+                type: 'photo', 
+                media: { source: Buffer.from(body.formData.fileEvidence, 'base64') },
+                caption: caption,
+                parse_mode: 'Markdown'
+            });
+
+            // 3. Kirim ke Channel
+            await bot.telegram.sendMediaGroup(CHANNEL_ID, media);
+
+            return res.status(200).json({ status: "success", uniqueId });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ status: "error" });
+        }
+    }
+
+    // Logika Webhook Telegram Biasa (untuk handle /start dan sendData)
+    try {
+        if (body.message) {
+            // Jika teknisi selesai input, bot kirim pesan konfirmasi di chat pribadi
+            if (body.message.web_app_data) {
+                const data = JSON.parse(body.message.web_app_data.data);
+                await bot.telegram.sendMessage(body.message.chat.id, data.message, { parse_mode: 'Markdown' });
+            } 
+            else if (body.message.text === '/start') {
+                await bot.telegram.sendMessage(body.message.chat.id, "Klik tombol di bawah untuk input panjer:", {
+                    reply_markup: {
+                        inline_keyboard: [[
+                            { text: "📝 Input Panjer", web_app: { url: `https://${process.env.VERCEL_URL}/` } }
+                        ]]
+                    }
+                });
+            }
+        }
+        res.status(200).send('OK');
+    } catch (e) {
+        res.status(200).send('OK');
+    }
+};
