@@ -4,21 +4,32 @@ const axios = require('axios');
 const bot = new Telegraf(process.env.BOT_TOKEN);
 const CHANNEL_ID = "-1003658290440";
 
-module.exports = async (req, res) => {
+// Fungsi Utama
+const handler = async (req, res) => {
     if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
     const body = req.body;
 
     if (body.type === "SUBMIT_FORM") {
         try {
+            // 1. Kirim ke Google Sheets
             const gasRes = await axios.post(process.env.APPS_SCRIPT_URL, body.formData);
             const { uniqueId, nama } = gasRes.data;
 
+            if (!uniqueId) throw new Error("GAS tidak merespon ID Unik");
+
+            // 2. Siapkan Media Group
             const media = [];
             if (body.formData.fileKmAwal) {
-                media.push({ type: 'photo', media: { source: Buffer.from(body.formData.fileKmAwal, 'base64') } });
+                media.push({ 
+                    type: 'photo', 
+                    media: { source: Buffer.from(body.formData.fileKmAwal, 'base64') } 
+                });
             }
             if (body.formData.fileKmAkhir) {
-                media.push({ type: 'photo', media: { source: Buffer.from(body.formData.fileKmAkhir, 'base64') } });
+                media.push({ 
+                    type: 'photo', 
+                    media: { source: Buffer.from(body.formData.fileKmAkhir, 'base64') } 
+                });
             }
 
             const caption = `📌 *LAPORAN PANJER BARU*
@@ -38,13 +49,18 @@ module.exports = async (req, res) => {
                 parse_mode: 'Markdown'
             });
 
+            // 3. Kirim ke Channel
             await bot.telegram.sendMediaGroup(CHANNEL_ID, media);
+            
             return res.status(200).json({ status: "success", uniqueId });
+
         } catch (error) {
+            console.error("ERROR_LOG:", error.message);
             return res.status(500).json({ status: "error", message: error.message });
         }
     }
 
+    // Handling chat bot biasa
     try {
         if (body.message) {
             if (body.message.web_app_data) {
@@ -55,12 +71,17 @@ module.exports = async (req, res) => {
             }
         }
         res.status(200).send('OK');
-    } catch (e) { res.status(200).send('OK'); }
+    } catch (e) { 
+        res.status(200).send('OK'); 
+    }
 };
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb', // Naikkan limit ke 10MB biar foto bisa masuk
+
+// BAGIAN PERBAIKAN: Cara ekspor config yang benar untuk CommonJS (require)
+module.exports = handler;
+module.exports.config = {
+    api: {
+        bodyParser: {
+            sizeLimit: '10mb',
+        },
     },
-  },
 };
