@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "nodeVersion": "24.x",
   "rewrites": [
     {
       "source": "/",
