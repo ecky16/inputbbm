@@ -4,7 +4,8 @@ const { Telegraf } = require('telegraf');
 const axios = require('axios');
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
-const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyZ9iNgAtS6Vp3ATSRvGZuNFVL_BTHRcLvnGhIbraeulIvR8K57MohgJ4CX3erHO51F/exec"; // GANTI INI
+// Ganti yang tadinya manual jadi pakai process.env
+const APPS_SCRIPT_URL = process.env.APPS_SCRIPT_URL;// GANTI INI
 const CHANNEL_ID = "-1003658290440";
 
 module.exports = async (req, res) => {
