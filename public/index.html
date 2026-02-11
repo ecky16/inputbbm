@@ -112,48 +112,61 @@
         });
 
         document.getElementById('panjerForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('btnSubmit');
-            btn.disabled = true;
-            btn.innerText = "Mengirim...";
+    e.preventDefault();
+    const btn = document.getElementById('btnSubmit');
+    btn.disabled = true;
+    btn.innerText = "Mengirim...";
 
-            const formData = {
-                telegramId: user ? user.id : "92250027",
-                nama: user ? user.first_name : "Anonim",
-                tanggal: document.getElementById('tanggal').value,
-                jenis: document.getElementById('jenis').value,
-                plat: document.getElementById('plat').value || "-",
-                kmAwal: document.getElementById('kmAwal').value || "0",
-                kmAkhir: document.getElementById('kmAkhir').value || "0",
-                uraian: document.getElementById('uraian').value,
-                jumlah: document.getElementById('jumlah').value,
-                fileKmAwal: await toBase64(document.getElementById('imgKmAwal').files[0]),
-                fileKmAkhir: await toBase64(document.getElementById('imgKmAkhir').files[0]),
-                fileEvidence: await toBase64(document.getElementById('imgEvidence').files[0])
-            };
+    // Ambil elemen filenya dulu
+    const fKmAwal = document.getElementById('imgKmAwal').files[0];
+    const fKmAkhir = document.getElementById('imgKmAkhir').files[0];
+    const fEvidence = document.getElementById('imgEvidence').files[0];
 
-            try {
-                const res = await fetch('/webhook', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: "SUBMIT_FORM", formData })
-                });
-                const result = await res.json();
-                
-                if(result.status === "success") {
-                    // MENGIRIM DATA KE BOT AGAR BOT BISA BALAS CHAT
-                    tg.sendData(JSON.stringify({ 
-                        message: `Data sudah terinput dengan id : \`${result.uniqueId}\`` 
-                    }));
-                    // Kasih jeda sedikit biar sendData selesai proses baru tutup
-                    setTimeout(() => { tg.close(); }, 500);
-                }
-            } catch (err) {
-                alert("Gagal Kirim ke Vercel!");
-                btn.disabled = false;
-                btn.innerText = "Kirim Laporan";
-            }
+    // Buat objek data dengan pengecekan file (Proteksi agar tidak error)
+    const formData = {
+        telegramId: user ? user.id : "92250027",
+        nama: user ? user.first_name : "Anonim",
+        tanggal: document.getElementById('tanggal').value,
+        jenis: document.getElementById('jenis').value,
+        tim: document.getElementById('tim').value, // Pastikan input TIM ada di HTML
+        plat: document.getElementById('plat').value || "-",
+        kmAwal: document.getElementById('kmAwal').value || "0",
+        kmAkhir: document.getElementById('kmAkhir').value || "0",
+        uraian: document.getElementById('uraian').value,
+        jumlah: document.getElementById('jumlah').value,
+        
+        // Hanya jalankan toBase64 JIKA filenya ada
+        fileKmAwal: fKmAwal ? await toBase64(fKmAwal) : null,
+        fileKmAkhir: fKmAkhir ? await toBase64(fKmAkhir) : null,
+        fileEvidence: fEvidence ? await toBase64(fEvidence) : null
+    };
+
+    try {
+        const res = await fetch('/webhook', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ type: "SUBMIT_FORM", formData })
         });
+        
+        const result = await res.json();
+        
+        if(result.status === "success") {
+            // Berikan alert agar ID bisa dibaca dulu
+            tg.showAlert(`Data Tersimpan!\nID: ${result.uniqueId}`, () => {
+                // Setelah klik OK, kirim data ke bot dan tutup
+                tg.sendData(JSON.stringify({ 
+                    message: `Data sudah terinput dengan id : \`${result.uniqueId}\`` 
+                }));
+                tg.close();
+            });
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Gagal Kirim Data!");
+        btn.disabled = false;
+        btn.innerText = "Kirim Laporan";
+    }
+});
 
             try {
                 const res = await fetch('/webhook', {
