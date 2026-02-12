@@ -11,33 +11,48 @@ const handler = async (req, res) => {
     if (body.type === "SUBMIT_FORM") {
         try {
             const { formData } = body;
+            
+            // 1. GENERATE ID BARU: MM-WX-RANDOM (Contoh: 02-W2-582)
             const d = new Date();
-            const timestamp = `${d.getHours()}${d.getMinutes()}${d.getSeconds()}`;
-            const uniqueId = `OSA-${d.getFullYear()}-${timestamp}`;
+            const bulan = ("0" + (d.getMonth() + 1)).slice(-2);
+            const mingguKe = Math.ceil(d.getDate() / 7);
+            const random3 = Math.floor(100 + Math.random() * 900);
+            const uniqueId = `${bulan}-W${mingguKe}-${random3}`;
 
-            // A. KIRIM KE GAS DULU (Untuk ambil Nama Asli dari DB)
+            // 2. KIRIM KE GAS DULU (Ambil Nama Asli & Simpan ke Sheet)
             const gasRes = await axios.post(process.env.APPS_SCRIPT_URL, { ...formData, uniqueId });
             const namaFix = gasRes.data.namaAsli || "Tidak Dikenal";
 
-            // B. SIAPKAN MEDIA GROUP UNTUK CHANNEL
+            // 3. SIAPKAN MEDIA GROUP (Maksimal 4 Foto)
             const media = [];
-            if (formData.fileKmAwal) {
-                media.push({ type: 'photo', media: { source: Buffer.from(formData.fileKmAwal, 'base64') } });
-            }
-            if (formData.fileKmAkhir) {
-                media.push({ type: 'photo', media: { source: Buffer.from(formData.fileKmAkhir, 'base64') } });
-            }
+            const addPhoto = (base64) => {
+                if (base64) media.push({ 
+                    type: 'photo', 
+                    media: { source: Buffer.from(base64, 'base64') } 
+                });
+            };
 
-            const caption = `📌 *LAPORAN PANJER BARU*
---------------------------
-🆔 ID: \`${uniqueId}\`
-👤 Teknisi: ${namaFix}
-🚗 Jenis: ${formData.jenis}
-📝 Uraian: ${formData.uraian}
-💰 Jumlah: Rp ${Number(formData.jumlah).toLocaleString('id-ID')}
---------------------------
-✅ Tercatat di Spreadsheet`;
+            addPhoto(formData.fileKmAwal);
+            addPhoto(formData.fileKmAkhir);
+            addPhoto(formData.fileNota); // Foto Nota masuk ke urutan album
 
+            // Susun Caption agar rapi dan tidak ada tanda "-" atau "0"
+            let caption = `📌 *LAPORAN PANJER BARU*\n`;
+            caption += `--------------------------\n`;
+            caption += `🆔 ID: \`${uniqueId}\`\n`;
+            caption += `👤 Teknisi: ${namaFix}\n`;
+            caption += `🚗 Jenis: ${formData.jenis}\n`;
+            
+            if (formData.tim) caption += `👥 TIM: ${formData.tim}\n`;
+            if (formData.plat) caption += `🚘 PLAT: ${formData.plat}\n`;
+            if (formData.kmAwal) caption += `🛣️ KM: ${formData.kmAwal} s/d ${formData.kmAkhir}\n`;
+            
+            caption += `📝 Uraian: ${formData.uraian}\n`;
+            caption += `💰 Jumlah: Rp ${Number(formData.jumlah).toLocaleString('id-ID')}\n`;
+            caption += `--------------------------\n`;
+            caption += `✅ Tercatat di Spreadsheet`;
+
+            // Foto Terakhir (Evidence) dengan Caption
             media.push({ 
                 type: 'photo', 
                 media: { source: Buffer.from(formData.fileEvidence, 'base64') }, 
@@ -45,11 +60,11 @@ const handler = async (req, res) => {
                 parse_mode: 'Markdown' 
             });
 
-            // C. KIRIM KE CHANNEL
+            // 4. EKSEKUSI KIRIM KE TELEGRAM
             await bot.telegram.sendMediaGroup(CHANNEL_ID, media);
-
-            // D. KIRIM KE CHAT PRIBADI TEKNISI
-            await bot.telegram.sendMessage(formData.telegramId, `✅ *Laporan Berhasil!*\n\nID: \`${uniqueId}\`\nNama: ${namaFix}\nData telah terinput ke Spreadsheet dan Channel.`, { parse_mode: 'Markdown' });
+            
+            // Kirim notifikasi ID ke chat pribadi teknisi agar bisa di-copy
+            await bot.telegram.sendMessage(formData.telegramId, `✅ *Laporan Berhasil!*\n\nID: \`${uniqueId}\`\nNama: ${namaFix}\n\nData telah terinput ke Spreadsheet dan Channel.`, { parse_mode: 'Markdown' });
 
             return res.status(200).json({ status: "success", uniqueId });
 
@@ -60,10 +75,16 @@ const handler = async (req, res) => {
     }
 
     if (body.message && body.message.text === '/start') {
-        await bot.telegram.sendMessage(body.message.chat.id, "Silakan gunakan tombol menu untuk input laporan.");
+        await bot.telegram.sendMessage(body.message.chat.id, "Halo Mas! Silakan gunakan tombol menu untuk input laporan.");
     }
     return res.status(200).send('OK');
 };
 
 module.exports = handler;
-module.exports.config = { api: { bodyParser: { sizeLimit: '10mb' } } };
+module.exports.config = { 
+    api: { 
+        bodyParser: { 
+            sizeLimit: '15mb' // Naikkan ke 15mb karena sekarang ada 4 foto
+        } 
+    } 
+};
