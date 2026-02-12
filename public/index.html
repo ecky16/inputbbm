@@ -69,10 +69,50 @@
                 if(!isKBM) f.value = "";
             });
         }
-        const toBase64 = f => !f ? null : new Promise((res,rej)=>{
-            const r = new FileReader(); r.readAsDataURL(f);
-            r.onload = () => res(r.result.split(',')[1]);
-        });
+        const toBase64 = file => new Promise((resolve, reject) => {
+    if (!file) {
+        resolve(null);
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = () => {
+            // Pengaturan Kompresi
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+            const max_size = 1280; // Maksimal lebar/tinggi 1280px (Standar Telegram)
+
+            // Hitung Rasio agar foto tidak gepeng
+            if (width > height) {
+                if (width > max_size) {
+                    height *= max_size / width;
+                    width = max_size;
+                }
+            } else {
+                if (height > max_size) {
+                    width *= max_size / height;
+                    height = max_size;
+                }
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            // Convert ke Base64 dengan kualitas 0.7 (70%)
+            // Ini akan memangkas ukuran file secara drastis!
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+            resolve(dataUrl.split(',')[1]);
+        };
+    };
+    reader.onerror = error => reject(error);
+});
 
         document.getElementById('panjerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
