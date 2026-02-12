@@ -3,47 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Input Panjer Teknisi</title>
+    <title>Input Panjer</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: sans-serif; padding: 15px; background: #f4f4f9; color: #333; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
-        input, select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        input:disabled, select:disabled { background: #e0e0e0; cursor: not-allowed; }
-        button { width: 100%; padding: 12px; background: #0088cc; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
-        button:disabled { background: #ccc; }
-        .info-user { background: #e7f3ff; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 12px; border-left: 5px solid #0088cc; }
-        .upload-group { margin-top: 10px; padding: 10px; border: 1px dashed #0088cc; border-radius: 8px; background: #fff; }
+        body { font-family: sans-serif; padding: 15px; background: #f4f4f9; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-weight: bold; font-size: 13px; margin-bottom: 4px; }
+        input, select, textarea { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 15px; }
+        input:disabled { background: #eee; }
+        .upload-card { background: #fff; padding: 10px; border: 1px dashed #0088cc; border-radius: 8px; margin-bottom: 10px; }
+        button { width: 100%; padding: 12px; background: #0088cc; color: #fff; border: none; border-radius: 8px; font-weight: bold; margin-top: 10px; }
     </style>
 </head>
 <body>
-
-    <div class="info-user" id="user-info">Memuat data teknisi...</div>
-
     <form id="panjerForm">
-        <div class="form-group">
-            <label>Tanggal (Sesuai Nota)</label>
-            <input type="date" id="tanggal" required>
-        </div>
-
+        <div class="form-group"><label>Tanggal Nota</label><input type="date" id="tanggal" required></div>
+        
         <div class="form-group">
             <label>Jenis Pekerjaan</label>
             <select id="jenis" onchange="toggleKBM()" required>
-                <option value="">-- Pilih Jenis --</option>
+                <option value="">-- Pilih --</option>
                 <option value="BBM KBM R4">BBM KBM R4</option>
                 <option value="BBM KBM R2">BBM KBM R2</option>
                 <option value="PANTRI">PANTRI</option>
-                <option value="KONSUMSI">KONSUMSI</option>
                 <option value="MATERIAL">MATERIAL</option>
                 <option value="JASA">JASA</option>
-                <option value="LAIN LAIN">LAIN LAIN</option>
             </select>
         </div>
 
         <div class="form-group">
             <label>TIM</label>
-            <select id="tim" class="kbm-field" required disabled>
+            <select id="tim" class="kbm-field" disabled required>
                 <option value="">-- Pilih TIM --</option>
                 <option value="MAINTENANCE">MAINTENANCE</option>
                 <option value="B2B">B2B</option>
@@ -51,129 +41,63 @@
         </div>
 
         <div class="form-group">
-            <label>KM Awal & KM Akhir</label>
-            <div style="display: flex; gap: 10px;">
-                <input type="number" id="kmAwal" class="kbm-field" placeholder="KM Awal" disabled>
-                <input type="number" id="kmAkhir" class="kbm-field" placeholder="KM Akhir" disabled>
-            </div>
+            <label>KM (Awal & Akhir)</label>
+            <div style="display:flex; gap:5px;"><input type="number" id="kmAwal" class="kbm-field" placeholder="Awal" disabled> <input type="number" id="kmAkhir" class="kbm-field" placeholder="Akhir" disabled></div>
         </div>
 
-        <div class="form-group">
-            <label>PLAT Nomor</label>
-            <input type="text" id="plat" class="kbm-field" placeholder="L 1234 ABC" disabled>
-        </div>
+        <div class="form-group"><label>PLAT</label><input type="text" id="plat" class="kbm-field" placeholder="L 1234 XX" disabled></div>
 
-        <div class="upload-group">
-            <label>📸 Foto KM Awal (KBM Only)</label>
-            <input type="file" id="imgKmAwal" class="kbm-field" accept="image/*" disabled>
-        </div>
+        <div class="upload-card"><label>📸 KM Awal</label><input type="file" id="imgKmAwal" class="kbm-field" accept="image/*" disabled></div>
+        <div class="upload-card"><label>📸 KM Akhir</label><input type="file" id="imgKmAkhir" class="kbm-field" accept="image/*" disabled></div>
+        <div class="upload-card"><label>📸 Nota (Wajib)</label><input type="file" id="imgNota" accept="image/*" required></div>
+        <div class="upload-card"><label>📸 Evidence (Wajib)</label><input type="file" id="imgEvidence" accept="image/*" required></div>
 
-        <div class="upload-group">
-            <label>📸 Foto KM Akhir (KBM Only)</label>
-            <input type="file" id="imgKmAkhir" class="kbm-field" accept="image/*" disabled>
-        </div>
+        <div class="form-group"><label>Uraian</label><textarea id="uraian" rows="2" required></textarea></div>
+        <div class="form-group"><label>Jumlah Rp</label><input type="number" id="jumlah" required></div>
 
-        <div class="upload-group">
-            <label>📸 Foto Nota / Kwitansi (Wajib)</label>
-            <input type="file" id="imgNota" accept="image/*" required>
-        </div>
-
-        <div class="upload-group">
-            <label>📸 Foto Evidence / Pekerjaan (Wajib)</label>
-            <input type="file" id="imgEvidence" accept="image/*" required>
-        </div>
-
-        <div class="form-group" style="margin-top: 15px;">
-            <label>Uraian Pekerjaan</label>
-            <textarea id="uraian" rows="3" placeholder="Detail pekerjaan..." required></textarea>
-        </div>
-
-        <div class="form-group">
-            <label>Jumlah (Rp)</label>
-            <input type="number" id="jumlah" placeholder="50000" required>
-        </div>
-
-        <button type="submit" id="btnSubmit">Kirim Laporan</button>
+        <button type="submit" id="btnSubmit">KIRIM LAPORAN</button>
     </form>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        const user = tg.initDataUnsafe.user;
-
-        if(user) {
-            document.getElementById('user-info').innerText = `Teknisi: ${user.first_name} (${user.id})`;
-        }
-
-        function toggleKBM() {
-            const jenis = document.getElementById('jenis').value;
-            const isKBM = jenis.includes("KBM");
-            const fields = document.querySelectorAll('.kbm-field');
-            
-            fields.forEach(f => {
-                f.disabled = !isKBM;
-                f.required = isKBM;
+        function toggleKBM(){
+            const isKBM = document.getElementById('jenis').value.includes("KBM");
+            document.querySelectorAll('.kbm-field').forEach(f => {
+                f.disabled = !isKBM; f.required = isKBM;
+                f.style.background = isKBM ? "#fff" : "#eee";
                 if(!isKBM) f.value = "";
-                f.style.background = isKBM ? "#fff" : "#e0e0e0";
             });
         }
-
-        const toBase64 = file => new Promise((resolve, reject) => {
-            if(!file) resolve(null);
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result.split(',')[1]);
-            reader.onerror = error => reject(error);
+        const toBase64 = f => !f ? null : new Promise((res,rej)=>{
+            const r = new FileReader(); r.readAsDataURL(f);
+            r.onload = () => res(r.result.split(',')[1]);
         });
 
         document.getElementById('panjerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('btnSubmit');
-            btn.disabled = true;
-            btn.innerText = "Mengirim...";
-
-            const fAwal = document.getElementById('imgKmAwal').files[0];
-            const fAkhir = document.getElementById('imgKmAkhir').files[0];
-            const fNota = document.getElementById('imgNota').files[0];
-            const fEvid = document.getElementById('imgEvidence').files[0];
-
+            btn.innerText = "Proses..."; btn.disabled = true;
+            
             const formData = {
-                telegramId: user ? user.id : "92250027",
-                nama: user ? user.first_name : "Anonim",
+                telegramId: tg.initDataUnsafe.user?.id || "92250027",
                 tanggal: document.getElementById('tanggal').value,
-                tim: document.getElementById('tim').value || "", // Kosong jika disabled
                 jenis: document.getElementById('jenis').value,
-                plat: document.getElementById('plat').value || "", // Kosong jika disabled
-                kmAwal: document.getElementById('kmAwal').value || "", // Kosong jika disabled
-                kmAkhir: document.getElementById('kmAkhir').value || "", // Kosong jika disabled
+                tim: document.getElementById('tim').value || "",
+                plat: document.getElementById('plat').value || "",
+                kmAwal: document.getElementById('kmAwal').value || "",
+                kmAkhir: document.getElementById('kmAkhir').value || "",
                 uraian: document.getElementById('uraian').value,
                 jumlah: document.getElementById('jumlah').value,
-                fileKmAwal: fAwal ? await toBase64(fAwal) : null,
-                fileKmAkhir: fAkhir ? await toBase64(fAkhir) : null,
-                fileNota: fNota ? await toBase64(fNota) : null,
-                fileEvidence: fEvid ? await toBase64(fEvid) : null
+                fileKmAwal: await toBase64(document.getElementById('imgKmAwal').files[0]),
+                fileKmAkhir: await toBase64(document.getElementById('imgKmAkhir').files[0]),
+                fileNota: await toBase64(document.getElementById('imgNota').files[0]),
+                fileEvidence: await toBase64(document.getElementById('imgEvidence').files[0])
             };
 
-            try {
-                const res = await fetch('/webhook', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type: "SUBMIT_FORM", formData })
-                });
-                const result = await res.json();
-                
-                if(result.status === "success") {
-                    tg.showAlert(`Terkirim! ID: ${result.uniqueId}\nCek chat bot untuk rinciannya.`, () => {
-                        tg.close();
-                    });
-                } else {
-                    throw new Error(result.message);
-                }
-            } catch (err) {
-                alert("Gagal Kirim: " + err.message);
-                btn.disabled = false;
-                btn.innerText = "Kirim Laporan";
-            }
+            const res = await fetch('/webhook', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({type:"SUBMIT_FORM", formData}) });
+            const result = await res.json();
+            if(result.status === "success") tg.showAlert(`Sukses! ID: ${result.uniqueId}`, () => tg.close());
         });
     </script>
 </body>
